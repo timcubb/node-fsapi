@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+<head>
+    <title>XIDE - FileSystem API Tests</title>
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+</head>
+<body>
+<h1>XIDE FS API Test</h1>
+
+<div id="output"></div>
+
+<h2>Workspace</h2>
+<span id="workspace_basepath"></span>
+<input type="hidden" id="workspace_path" value="/" />
+
+<ul id="workspace">
+    <li>no files loaded yet</li>
+</ul>
+
+<span id="save_file">Save File</span>
+<span id="close_file">Close File</span>
+<textarea style="width:100%;height:500px;" id="load_file">file to be loaded here...</textarea>
+
+<script>
+
+window.onerror = function (err) {
+	log.error(xerr);
+}
+
+function apipost(url, args, d_type, cb) {
+    post_url = url;
+    $.ajax({
+        url: post_url,
+        type: "POST",
+        data: args,
+        dataType: d_type
+    })
+    .done(function(data, code, xhr) { cb(false, data); })
+    .fail(function() { alert('error!'); cb("error... something went wrong", ""); });
+}
+
+var log = {};
+log.error = function(msg) {
+    console.log(label, msg);
+};
+
+
+function open_directory(path) {
+    apipost('/get_dir', {path:path}, 'json', function(err, data){
+        if(err) { 
+            log.error(err);
+        }
+
+        var folders = data.folders;
+        var files = data.files;
+        var base_path = data.base;
+        var up_one_level = data.up;
+        var i, x, y, z;
+    	
+        if(data.up != '') {
+            var response = "<li id='up'><span class='up'>.. [up level]</span></li>";
+        } else {
+            var response = "";
+        }
+
+        for(i=0, x=folders.length;i<x;i++) {
+            response += "<li class='folder' rel='"+folders[i]+"'>[D] <span class='delete'>[X]</span> <span class='rename'>[R]</span> <span class='folder'>"+folders[i]+"</li>";
+        }
+    
+        for(i=0, x=files.length;i<x;i++) {
+            response += "<li class='file' rel='"+files[i]+"'>[F] <span class='delete'>[X]</span> <span class='rename'>[R]</span> <span class='file'>"+files[i]+"</li>";
+        }
+    
+        $('#workspace').html(response);
+        $('#workspace_basepath').html(base_path);
+        $('#workpace').attr('path', path);
+
+        $('.up', '#up').click(function(e){
+            open_directory(up_one_level);
+        });
+
+        $('#close_file').click(function(e){
+            $('#load_file').attr('rel', '');
+            $('#load_file').val('No File Loaded.');
+        });
+        
+        $('span.file', '#workspace li.file').click(function(e){
+            var new_path = path+$(this).html(); 
+            open_file(new_path);
+        });
+	
+        $('span.folder', '#workspace li.folder').click(function(e){
+            var new_path = path+$(this).html()+'/';
+            open_directory(new_path);
+        });
+
+        $('.delete', '#workspace li.file').click(function(e){
+            var new_path = path+$(this).parent().attr('rel');
+            delete_file(new_path);
+        });
+
+        $('.delete', '#workspace li.folder').click(function(e){
+            var new_path = path+$(this).parent().attr('rel')+'/';
+            delete_directory(new_path);
+        });
+
+        $('.rename', '#workspace li.file').click(function(e){
+            var old_path = path+$(this).parent().attr('rel');
+            var new_path = prompt("New file name: ", old_path);
+            rename_file(old_path, new_path);
+        });
+
+        $('.rename', '#workspace li.folder').click(function(e){
+            var old_path = path+$(this).parent().attr('rel')+'/';
+            var new_path = prompt("New dir name: ", old_path);
+            rename_directory(old_path, new_path);
+        });
+
+    });
+}
+
+$('#save_file').click(function(e){
+	var file_contents = $('#load_file').val();
+	var file_name = $('#load_file').attr('rel');   
+	save_file(file_name, file_contents);
+});
+
+
+function open_file(path) {
+    apipost('/get_file', {path:path}, 'json', function(err, data){
+        if(err) { 
+            log.error(err);
+        }
+
+        var response = data;
+        $('#load_file').val(response);
+        $('#load_file').attr('rel', path);
+    });
+}
+
+function delete_file(path) {
+ 
+    apipost('/delete_file', {path:path}, 'json', function(err, data){
+        if(err) {
+            log.error(err);
+        }
+
+        var base_path = data.base_dir;
+        var filename = data.file;
+
+        $('#output').append('<p>Deleted File: '+filename+'</p>');
+        open_directory(base_path);
+    });
+}
+
+function delete_directory(path) {
+
+    apipost('/delete_dir', {path:path}, 'json', function(err, data){
+        if(err) {
+            log.error(err);
+        } 
+
+        var base_path = data.base_dir;
+        var folder = data.dir;
+
+        $('#output').append('<p>Deleted folder: '+folder+'</p>');
+        open_directory(base_path);
+    });
+}
+
+function rename_file(old_path, new_path) {
+
+    apipost('/rename_file', {old_path:old_path, new_path:new_path}, 'json', function(err, data){
+        if(err) {
+            log.error(err);
+        }
+
+        var base_path = data.base_dir;
+        var old_file = data.old_file;
+        var new_file = data.new_file;
+        $('#output').append('<p>Renamed file '+old_file+' to '+new_file+'</p>');
+        open_directory(base_path);
+    });
+}
+
+function rename_directory(old_path, new_path) {
+
+    apipost('/rename_dir', {old_path:old_path, new_path:new_path}, 'json', function(err, data){
+        if(err) {
+            log.error(err);
+        }
+
+        var base_path = data.base_dir;
+        var old_folder = data.old_dir;
+        var new_folder = data.new_dir
+        
+        $('#output').append('<p>Renamed folder '+old_folder+' to '+new_folder+'</p>');
+        open_directory(base_path);
+    });
+}
+
+
+function save_file(path, contents) {
+    apipost('/save_file', {path:path, contents: contents}, 'json', function(err, data){
+        if(err) {
+            log.error(err);
+        }
+        
+        var filename = data.file;
+        $('#output').append('<p>File Saved: '+filename+'</p>');
+    });
+}
+
+open_directory('');
+
+</script>
+
+</body>
+</html>
+
