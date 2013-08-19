@@ -6,6 +6,8 @@ FSAPI exposes a filesystem on a remote computer via a JSON REST API endpoint. Us
 Usage:
 ------
 
-      $> node index.js path=/home/my_user/my_project/ port=9090
+To start the API server, and try the test client, you must specify the dir and port when running the server:
 
+      node index.js path=/home/my_user/my_project/ port=9090
 
+You can then access the test client by pointing your browser to http://localhost:9090/
