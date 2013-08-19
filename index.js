@@ -1,6 +1,11 @@
-// Xide-fsapi // @author: Timothy Cubbedge (http://github.com/timcubb)] // @description: REST API exposing a servers filesystem to a 
-remote client (browser) // The API allows listing files/dirs in a directory, changing directories, // opening, deleting, renaming of 
-files/directories, and saving changes // to a file, as well as creating new files/directories. //
+//
+// Xide-fsapi 
+// @author: Timothy Cubbedge (http://github.com/timcubb)] 
+// @description: REST API exposing a servers filesystem to a remote client (browser) 
+// The API allows listing files/dirs in a directory, changing directories, 
+// opening, deleting, renaming of files/directories, and saving changes 
+// to a file, as well as creating new files/directories. 
+//
 
 
 var restify = require('restify'),
@@ -10,13 +15,10 @@ var restify = require('restify'),
     rmdir2 = require('rimraf');
 
 // Constants
-// (Set by CLI options
+// (Set by CLI options)
 
 var THE_PATH = process.argv[2].split('=')[1] || "/home/";
 var THE_PORT = process.argv[3].split('=')[1] || 9090;
-
-console.log('path', THE_PATH);
-console.log('port', THE_PORT);
 
 // REST server setup
 var server = restify.createServer({
